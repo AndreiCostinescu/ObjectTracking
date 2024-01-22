@@ -1,7 +1,7 @@
-#include <iostream>
-#include <fstream>
+#include <cassert>
 #include <filesystem>
-#include <assert.h>
+#include <fstream>
+#include <iostream>
 #include <map>
 #include "sort.h"
 
@@ -30,7 +30,7 @@ using sort::Sort;
 auto constexpr MAX_COLORS = 2022;
 vector<Scalar> COLORS;
 
-vector<string> split(const string& s, char delim) {
+vector<string> split(const string &s, char delim) {
     std::istringstream iss(s);
     vector<string> ret;
     string item;
@@ -41,7 +41,7 @@ vector<string> split(const string& s, char delim) {
 }
 
 // (seq info, [(image, detection), ...])
-tuple<map<string, string>, vector<pair<Mat, Mat>>> getInputData(string dataFolder, bool useGT=false) {
+tuple<map<string, string>, vector<pair<Mat, Mat>>> getInputData(string dataFolder, bool useGT = false) {
     if (*dataFolder.end() != '/') dataFolder += '/';
 
     ifstream ifs;
@@ -64,7 +64,7 @@ tuple<map<string, string>, vector<pair<Mat, Mat>>> getInputData(string dataFolde
 
     // get file list
     vector<string> imgPaths;
-    for (const auto& entry : fs::directory_iterator(dataFolder + mp["imDir"]))
+    for (const auto &entry: fs::directory_iterator(dataFolder + mp["imDir"]))
         imgPaths.push_back(entry.path());
     std::sort(imgPaths.begin(), imgPaths.end());
     assert(imgPaths.size() == std::stoi(mp["seqLength"]));
@@ -72,8 +72,9 @@ tuple<map<string, string>, vector<pair<Mat, Mat>>> getInputData(string dataFolde
     vector<pair<Mat, Mat>> pairs(imgPaths.size(), {Mat(0, 0, CV_32F), Mat(0, 6, CV_32F)});
 
     // read images
-    for (int i = 0; i < imgPaths.size(); ++i)
+    for (int i = 0; i < imgPaths.size(); ++i) {
         pairs[i].first = cv::imread(imgPaths[i]);
+    }
 
     // read detections
     if (useGT) ifs.open(dataFolder + "/gt/gt.txt");
@@ -90,14 +91,14 @@ tuple<map<string, string>, vector<pair<Mat, Mat>>> getInputData(string dataFolde
         w = stof(ss[4]);
         h = stof(ss[5]);
         score = stof(ss[6]);
-        Mat bbox = (Mat_<float>(1, 6) << x0 + w/2, y0 + h/2, w, h, score, 0);
-        cv::vconcat(pairs[frameId-1].second, bbox, pairs[frameId-1].second);
+        Mat bbox = (Mat_<float>(1, 6) << x0 + w / 2, y0 + h / 2, w, h, score, 0);
+        cv::vconcat(pairs[frameId - 1].second, bbox, pairs[frameId - 1].second);
     }
-    
+
     return std::make_tuple(mp, pairs);
 }
 
-void draw(Mat& img, const Mat& bboxes) {
+void draw(Mat &img, Mat const &bboxes) {
     float xc, yc, w, h, score, dx, dy;
     int trackerId;
     string sScore;
@@ -110,20 +111,19 @@ void draw(Mat& img, const Mat& bboxes) {
         dy = bboxes.at<float>(i, 7);
         trackerId = int(bboxes.at<float>(i, 8));
 
-        cv::rectangle(img, Rect(xc - w/2, yc - h/2, w, h), COLORS[trackerId % MAX_COLORS], 2);
-        cv::putText(img, std::to_string(trackerId), Point(xc - w/2, yc - h/2 - 4),
+        cv::rectangle(img, Rect(int(xc - w / 2), int(yc - h / 2), int(w), int(h)), COLORS[trackerId % MAX_COLORS], 2);
+        cv::putText(img, std::to_string(trackerId), Point(int(xc - w / 2), int(yc - h / 2 - 4)),
                     cv::FONT_HERSHEY_PLAIN, 1.5, COLORS[trackerId % MAX_COLORS], 2);
-        cv::arrowedLine(img, Point(xc, yc), Point(xc + 5 * dx, yc + 5 * dy),
+        cv::arrowedLine(img, Point(int(xc), int(yc)), Point(int(xc + 5 * dx), int(yc + 5 * dy)),
                         COLORS[trackerId % MAX_COLORS], 4);
     }
 }
 
-int main(int argc, char** argv)
-{   
+int main(int argc, char **argv) {
     // generate colors
     RNG rng(MAX_COLORS);
     for (size_t i = 0; i < MAX_COLORS; ++i) {
-        Scalar color = Scalar(rng.uniform(0,255), rng.uniform(0, 255), rng.uniform(0, 255));
+        Scalar color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
         COLORS.push_back(color);
     }
 
@@ -134,9 +134,9 @@ int main(int argc, char** argv)
     }
     string dataFolder = argv[1];
     // string dataFolder = "../data/TUD-Stadtmitte/";
-    
+
     // read image and detections
-    cout << "Read image and detections..." << endl;    
+    cout << "Read image and detections..." << endl;
     auto [seqInfo, motPairs] = getInputData(dataFolder);
     float fps = std::stof(seqInfo["frameRate"]);
 
@@ -144,15 +144,15 @@ int main(int argc, char** argv)
     cout << "Tracking..." << endl;
     Sort::Ptr mot = std::make_shared<Sort>(1, 3, 0.3f);
     cv::namedWindow("SORT", cv::WindowFlags::WINDOW_NORMAL);
-    for (auto [img, bboxesDet] : motPairs) {
-        Mat bboxesPost = mot->update(bboxesDet);
-        
+    for (auto [image, boundingBoxesDetections]: motPairs) {
+        Mat trackedBoundingBoxes = mot->update(boundingBoxesDetections);
+
         // show result
-        draw(img, bboxesPost);
-        cv::imshow("SORT", img);
-        cv::waitKey(1000.0 / fps);
+        draw(image, trackedBoundingBoxes);
+        cv::imshow("SORT", image);
+        cv::waitKey(int(3000.0 / fps));
     }
-    
+
     cout << "Done" << endl;
 
     return 0;

@@ -4,8 +4,7 @@ using namespace sort;
 
 int KalmanBoxTracker::count = 0;
 
-KalmanBoxTracker::KalmanBoxTracker(const cv::Mat &bbox)
-{   
+KalmanBoxTracker::KalmanBoxTracker(cv::Mat const &bbox) {
     id = KalmanBoxTracker::count;
     KalmanBoxTracker::count++;
 
@@ -56,13 +55,10 @@ KalmanBoxTracker::KalmanBoxTracker(const cv::Mat &bbox)
 }
 
 
-KalmanBoxTracker::~KalmanBoxTracker()
-{
-}
+KalmanBoxTracker::~KalmanBoxTracker() = default;
 
 
-cv::Mat KalmanBoxTracker::update(const cv::Mat &bbox)
-{
+cv::Mat KalmanBoxTracker::update(cv::Mat const &bbox) {
     timeSinceUpdate = 0;
     hitStreak += 1;
     xPost = kf->correct(convertBBoxToZ(bbox));
@@ -71,9 +67,8 @@ cv::Mat KalmanBoxTracker::update(const cv::Mat &bbox)
 }
 
 
-cv::Mat KalmanBoxTracker::predict()
-{
-    // bbox area (ds/dt + s) shouldn't be negtive
+cv::Mat KalmanBoxTracker::predict() {
+    // bbox area (ds/dt + s) shouldn't be negative
     if (kf->statePost.at<float>(6, 0) + kf->statePost.at<float>(2, 0) <= 0)
         kf->statePost.at<float>(6, 0) *= 0;
 

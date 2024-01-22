@@ -3,32 +3,28 @@
 using namespace sort;
 
 Sort::Sort(int maxAge, int minHits, float iouThresh)
-    : maxAge(maxAge), minHits(minHits), iouThresh(iouThresh)
-{
+        : maxAge(maxAge), minHits(minHits), iouThresh(iouThresh) {
     km = std::make_shared<KuhnMunkres>();
 }
 
 
-Sort::~Sort()
-{
-}
+Sort::~Sort() = default;
 
 
-cv::Mat Sort::update(const cv::Mat &bboxesDet)
-{
+cv::Mat Sort::update(cv::Mat const &bboxesDet) {
     assert(bboxesDet.rows >= 0 && bboxesDet.cols == 6); // detections, [xc, yc, w, h, score, class_id]
 
-    cv::Mat bboxesPred(0, 6, CV_32F, cv::Scalar(0));  // predictions used in data association, [xc, yc, w, h, ...]
-    cv::Mat bboxesPost(0, 9, CV_32F, cv::Scalar(0));  // bounding boxes estimate, [xc, yc, w, h, score, class_id, vx, vy, tracker_id]
+    cv::Mat bboxesPred(0, 6, CV_32F, cv::Scalar(0));  // predictions used in data association, [xc, yc, w, h, score, class_id]
+    cv::Mat bboxesPost(0, 9, CV_32F,
+                       cv::Scalar(0));  // bounding boxes estimate, [xc, yc, w, h, score, class_id, vx, vy, tracker_id]
 
     // kalman bbox tracker predict
-    for (auto it = trackers.begin(); it != trackers.end();)
-    {
+    for (auto it = trackers.begin(); it != trackers.end();) {
         cv::Mat bboxPred = (*it)->predict();   // Mat(1, 4)
         if (isAnyNan<float>(bboxPred))
             trackers.erase(it);     // remove the NAN value and corresponding tracker
-        else{
-            cv::hconcat(bboxPred, cv::Mat(1, 2, CV_32F,cv::Scalar(0)), bboxPred);   // Mat(1, 6)
+        else {
+            cv::hconcat(bboxPred, cv::Mat(1, 2, CV_32F, cv::Scalar(0)), bboxPred);   // Mat(1, 6)
             cv::vconcat(bboxesPred, bboxPred, bboxesPred);  // Mat(N, 6)
             ++it;
         }
@@ -40,16 +36,14 @@ cv::Mat Sort::update(const cv::Mat &bboxesDet)
     TypeLostPreds lostPreds = std::get<2>(asTuple);
 
     // update matched trackers with assigned detections
-    for (auto pair : matchedDetPred)
-    {
+    for (auto pair: matchedDetPred) {
         int detInd = pair.first;
         int predInd = pair.second;
         cv::Mat bboxPost = trackers[predInd]->update(bboxesDet.rowRange(detInd, detInd + 1));
 
-        if (trackers[predInd]->getHitStreak() >= minHits)
-        {
+        if (trackers[predInd]->getHitStreak() >= minHits) {
             float score = bboxesDet.at<float>(detInd, 4);
-            int classId = bboxesDet.at<float>(detInd, 5);
+            int classId = (int) bboxesDet.at<float>(detInd, 5);
             float dx = trackers[predInd]->getState().at<float>(4, 0);
             float dy = trackers[predInd]->getState().at<float>(5, 0);
             int trackerId = trackers[predInd]->getFilterId();
@@ -61,16 +55,15 @@ cv::Mat Sort::update(const cv::Mat &bboxesDet)
 
     // remove dead trackers
     trackers.erase(
-        std::remove_if(trackers.begin(), trackers.end(),
-            [&](const KalmanBoxTracker::Ptr& kbt)->bool {
-                return kbt->getTimeSinceUpdate() > maxAge;
-            }),
-        trackers.end()
+            std::remove_if(trackers.begin(), trackers.end(),
+                           [&](const KalmanBoxTracker::Ptr &kbt) -> bool {
+                               return kbt->getTimeSinceUpdate() > maxAge;
+                           }),
+            trackers.end()
     );
 
     // create and initialize new trackers for unmatched detections
-    for (int lostInd : lostDets)
-    {
+    for (int lostInd: lostDets) {
         cv::Mat lostBbox = bboxesDet.rowRange(lostInd, lostInd + 1);
         trackers.push_back(make_shared<KalmanBoxTracker>(lostBbox));
     }
@@ -79,8 +72,7 @@ cv::Mat Sort::update(const cv::Mat &bboxesDet)
 }
 
 
-TypeAssociate Sort::dataAssociate(const cv::Mat& bboxesDet, const cv::Mat& bboxesPred)
-{
+TypeAssociate Sort::dataAssociate(cv::Mat const &bboxesDet, cv::Mat const &bboxesPred) {
     TypeMatchedPairs matchedDetPred;
     TypeLostDets lostDets;
     TypeLostPreds lostPreds;
@@ -106,8 +98,8 @@ TypeAssociate Sort::dataAssociate(const cv::Mat& bboxesDet, const cv::Mat& bboxe
     auto indices = km->compute(costMatrix);
 
     // find matched pairs and lost detect and predict
-    for (auto [detInd, predInd] : indices) {
-        matchedDetPred.push_back({detInd, predInd});
+    for (auto [detInd, predInd]: indices) {
+        matchedDetPred.emplace_back(detInd, predInd);
         lostDets.erase(remove(lostDets.begin(), lostDets.end(), detInd), lostDets.end());
         lostPreds.erase(remove(lostPreds.begin(), lostPreds.end(), predInd), lostPreds.end());
     }
@@ -116,28 +108,25 @@ TypeAssociate Sort::dataAssociate(const cv::Mat& bboxesDet, const cv::Mat& bboxe
 }
 
 
-cv::Mat Sort::getIouMatrix(const cv::Mat& bboxesA, const cv::Mat& bboxesB)
-{
+cv::Mat Sort::getIouMatrix(cv::Mat const &bboxesA, cv::Mat const &bboxesB) {
     assert(bboxesA.cols >= 4 && bboxesB.cols >= 4);
     int numA = bboxesA.rows;
     int numB = bboxesB.rows;
     cv::Mat iouMat(numA, numB, CV_32F, cv::Scalar(0.0));
 
     cv::Rect re1, re2;
-    for (int i = 0; i < numA; ++i)
-    {
-        for (int j = 0; j < numB; ++j)
-        {
-            re1.x = bboxesA.at<float>(i, 0) - bboxesA.at<float>(i, 2) / 2.0;
-            re1.y = bboxesA.at<float>(i, 1) - bboxesA.at<float>(i, 3) / 2.0;
-            re1.width = bboxesA.at<float>(i, 2);
-            re1.height = bboxesA.at<float>(i, 3);
-            re2.x = bboxesB.at<float>(j, 0) - bboxesB.at<float>(j, 2) / 2.0;
-            re2.y = bboxesB.at<float>(j, 1) - bboxesB.at<float>(j, 3) / 2.0;
-            re2.width = bboxesB.at<float>(j, 2);
-            re2.height = bboxesB.at<float>(j, 3);
+    for (int i = 0; i < numA; ++i) {
+        for (int j = 0; j < numB; ++j) {
+            re1.x = int(bboxesA.at<float>(i, 0) - bboxesA.at<float>(i, 2) / 2.0);
+            re1.y = int(bboxesA.at<float>(i, 1) - bboxesA.at<float>(i, 3) / 2.0);
+            re1.width = int(bboxesA.at<float>(i, 2));
+            re1.height = int(bboxesA.at<float>(i, 3));
+            re2.x = int(bboxesB.at<float>(j, 0) - bboxesB.at<float>(j, 2) / 2.0);
+            re2.y = int(bboxesB.at<float>(j, 1) - bboxesB.at<float>(j, 3) / 2.0);
+            re2.width = int(bboxesB.at<float>(j, 2));
+            re2.height = int(bboxesB.at<float>(j, 3));
 
-            iouMat.at<float>(i, j) = (re1 & re2).area() / ((re1 | re2).area() + FLT_EPSILON);
+            iouMat.at<float>(i, j) = float((re1 & re2).area()) / (float((re1 | re2).area()) + FLT_EPSILON);
         }
     }
 
