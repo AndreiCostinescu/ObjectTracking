@@ -1,0 +1,137 @@
+{
+    "parametersFor": "VisualPerception",
+    "RecordingLib": {
+        "parametersFor": "RecordingLib",
+        "outputDirectory": "../data/",
+        "_outputDirectory": "/data/Realsense/bags/",
+        "writeBufferSize": 262144
+    },
+    "MarkerDetectionLib": {
+        "parametersFor": "MarkerDetectionLib",
+        "AprilTagDetector": {
+            "parametersFor": "AprilTagDetector",
+            "tag_family": "tag36h11",
+            "threads": 4,
+            "hamming": 1,
+            "debug": false,
+            "quiet": false,
+            "refine-edges": true,
+            "decimate": 2.0,
+            "blur": 0.0,
+            "verbose": false,
+            "uponWrongDepthPointAcceptEstimation": false,
+            "poseFromSolvePnP": true
+        },
+        "TagSizes": {
+            "TagSizesConfigFile": "/usr/local/src/MarkerDetectionLib/config/tagSizes.json"
+        }
+    },
+    "VisualPerceptionInput": {
+        "parametersFor": "VisualPerceptionInput",
+        "testSensors": {
+            "_!sensors": ["WebCam", "Realsense"],
+            "_!sensorTypes": ["webcam", "realsense"],
+            "_?sensors": ["Realsense_L515", "Realsense_D455"],
+            "_?sensorTypes": ["realsense", "realsense"],
+            "_sensors": ["Realsense"],
+            "_sensorTypes": ["realsense"],
+            "-sensors": ["RealsensePcl"],
+            "-sensorTypes": ["realsense_pcl"],
+            "!sensors": ["Realsense_L515"],
+            "!sensorTypes": ["realsense"],
+            ".sensors": ["Realsense_D455"],
+            ".sensorTypes": ["realsense_pcl"],
+            ",sensors": ["WebCam"],
+            ",sensorTypes": ["webcam"]
+        },
+        "sensors": ["Realsense_L515"],
+        "sensorTypes": ["realsense"],
+        "/sensors": ["Recording1"],
+        "/sensorTypes": ["recording"],
+        "Realsense": {
+            "parametersFor": "Realsense",
+            "serial": ""
+        },
+        "RealsensePcl": {
+            "parametersFor": "RealsensePcl",
+            "serial": "",
+            "color_fps": 60,
+            "color_w": 640,
+            "color_h": 480,
+            "depth_fps": 60,
+            "depth_w": 640,
+            "depth_h": 480
+        },
+        "Realsense_L515": {
+            "parametersFor": "Realsense_L515",
+            "serial": "f0221609"
+        },
+        "Recording1": {
+            "parametersFor": "Recording1",
+            "fileNumber": 10
+        }
+    },
+    "OpenposeProcessor": {
+        "parametersFor": "OpenposeProcessor",
+        "openposeModelFolder": "/usr/local/src/VisualPerception/models/",
+        "openposeProtoTxtPath": "pose/body_25/pose_deploy.prototxt",
+        "openposeCaffeModelPath": "pose/body_25/pose_iter_584000.caffemodel",
+        "openposeWithPose": true,
+        "openposePoseNetSize": 368,
+        "openposePoseRenderThreshold": 0.3,
+        "openposeWithHand": false,
+        "openposeHandNetSize": 240,
+        "openposeHandDetector": 0,
+        "openposeHandRenderThreshold": 0.2,
+        "openposeWithFace": false,
+        "openposeFaceNetSize": 240,
+        "openposeFaceDetector": 0,
+        "openposeFaceRenderThreshold": 0.4
+    },
+    "OpenposeVisualizer": {
+        "parametersFor": "OpenposeVisualizer",
+        "updatePersons": false,
+        "updateSkeletons": false,
+        "jointsActiveFrameCount": 1,
+        "depthDeterminationWindowSize": 1,
+        "skeletonConfidenceThreshold": 0.3,
+        "handConfidenceThreshold": 0.2,
+        "faceConfidenceThreshold": 0.4
+    },
+    "Perception": {
+        "parametersFor": "Perception",
+        "spawnThread": false,
+        "sequential": false,
+        "showOutput": false,
+        "avgFrames": 1,
+        "timeLimitSec": 0,
+        "recordPerceptionInput": false,
+        "recordPerceptionOutput": false,
+        "verbose": false,
+        "completeSilent": true,
+        "sendImage": false,
+        "finishOnInputDone": true,
+        "finishOnOutputDone": false,
+        "allowPerceptionExit": true,
+        "measureTime": false,
+        "testModules": {
+            "_enableModules": ["darknet", "openpose", "marker", "surface"],
+            "_enableModules": ["darknet2d", "openpose2d", "marker2d", "surface"],
+            "_enableModules": ["darknet", "openpose", "marker"],
+            "_enableModules": ["darknet2d", "openpose2d", "marker2d"],
+            "_enableModules": ["darknet", "openpose"],
+            "_enableModules": ["darknet", "marker"],
+            "_enableModules": ["marker2d"],
+            "_enableModules": ["openpose2d"],
+            "_enableModules": ["openpose"],
+            "_enableModules": ["darknet2d"],
+            "_enableModules": ["darknet"],
+            "_enableModules": ["surface", "empty"],
+            "_enableModules": ["empty2d"],
+            "_enableModules": ["empty"]
+        },
+        "_enableModules": ["openpose", "marker"],
+        "_enableModules": ["marker"],
+        "enableModules": ["openpose"]
+    }
+}

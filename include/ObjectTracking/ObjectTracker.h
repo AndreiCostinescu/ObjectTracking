@@ -10,10 +10,10 @@
 #pragma once
 
 #include <memory>
-#include "kuhn_munkres.h"
-#include "kalman_box_tracker.h"
+#include <ObjectTracking/KuhnMunkres.h>
+#include <ObjectTracking/KalmanBoxTracker.h>
 
-namespace sort {
+namespace ObjectTracking {
     using std::shared_ptr;
     using std::vector;
     using std::pair;
@@ -29,26 +29,29 @@ namespace sort {
     using TypeLostPreds = vector<int>;
     using TypeAssociate = tuple<TypeMatchedPairs, TypeLostDets, TypeLostPreds>;
 
-    class Sort {
+    class ObjectTracker {
         // variables
     public:
-        using Ptr = std::shared_ptr<Sort>;
+        using Ptr = std::shared_ptr<ObjectTracker>;
     private:
         int maxAge;         // tracker's maximal unmatch count
         int minHits;        // tracker's minimal match count
         float iouThresh;    // IoU threshold
         vector<KalmanBoxTracker::Ptr> trackers;
         KuhnMunkres::Ptr km = nullptr;
+        static int const maxColors;
+        static vector<cv::Scalar> colors;
+        static bool colorsInitialized;
 
         // methods
     public:
-        explicit Sort(int maxAge = 1, int minHits = 3, float iouThresh = 0.3);
+        explicit ObjectTracker(int maxAge = 1, int minHits = 3, float iouThresh = 0.3);
 
-        virtual ~Sort();
+        virtual ~ObjectTracker();
 
-        Sort(const Sort &) = delete;
+        ObjectTracker(const ObjectTracker &) = delete;
 
-        Sort &operator=(const Sort &) = delete;
+        ObjectTracker &operator=(const ObjectTracker &) = delete;
 
         /**
          * @brief bbox tracking in SORT, this method must be called once for each frame even with empty detections, 
@@ -57,6 +60,8 @@ namespace sort {
          * @return matched bboxes, Mat(N, 9) with the format [[xc,yc,w,h,score,class_id,dx,dy,tracker_id];[...];...].
          */
         cv::Mat update(cv::Mat const &bboxesDet);
+
+        static void draw(cv::Mat &img, cv::Mat const &bboxes, bool withScore = false);
 
     private:
         /** 
@@ -88,6 +93,8 @@ namespace sort {
          * @return M x N matrix, value(i, j) means IoU of A(i) and B(j)
          */
         static cv::Mat getIouMatrix(cv::Mat const &bboxesA, cv::Mat const &bboxesB);
+
+        static void initializeColors();
     };
 }
 

@@ -1,17 +1,23 @@
-#include "sort.h"
+#include "ObjectTracking/ObjectTracker.h"
+#include <iostream>
 
-using namespace sort;
+using namespace ObjectTracking;
 
-Sort::Sort(int maxAge, int minHits, float iouThresh)
+int const ObjectTracker::maxColors = 2022;
+std::vector<cv::Scalar> ObjectTracker::colors;
+bool ObjectTracker::colorsInitialized = false;
+
+ObjectTracker::ObjectTracker(int maxAge, int minHits, float iouThresh)
         : maxAge(maxAge), minHits(minHits), iouThresh(iouThresh) {
     km = std::make_shared<KuhnMunkres>();
+    if (!ObjectTracker::colorsInitialized) {
+        ObjectTracker::initializeColors();
+    }
 }
 
+ObjectTracker::~ObjectTracker() = default;
 
-Sort::~Sort() = default;
-
-
-cv::Mat Sort::update(cv::Mat const &bboxesDet) {
+cv::Mat ObjectTracker::update(cv::Mat const &bboxesDet) {
     assert(bboxesDet.rows >= 0 && bboxesDet.cols == 6); // detections, [xc, yc, w, h, score, class_id]
 
     // predictions used in data association, [xc, yc, w, h, score, class_id]
@@ -69,30 +75,61 @@ cv::Mat Sort::update(cv::Mat const &bboxesDet) {
     return bboxesPost;
 }
 
+void ObjectTracker::draw(cv::Mat &img, cv::Mat const &bboxes, bool withScore) {
+    float xc, yc, w, h, score, dx, dy;
+    int trackerId;
+    std::string sScore;
+    for (int i = 0; i < bboxes.rows; ++i) {
+        xc = bboxes.at<float>(i, 0);
+        yc = bboxes.at<float>(i, 1);
+        w = bboxes.at<float>(i, 2);
+        h = bboxes.at<float>(i, 3);
+        score = bboxes.at<float>(i, 4);
+        dx = bboxes.at<float>(i, 6);
+        dy = bboxes.at<float>(i, 7);
+        trackerId = int(bboxes.at<float>(i, 8));
 
-TypeAssociate Sort::dataAssociate(cv::Mat const &bboxesDet, cv::Mat const &bboxesPred) {
+        cv::rectangle(img, cv::Rect(int(xc - w / 2), int(yc - h / 2), int(w), int(h)),
+                      ObjectTracker::colors[trackerId % ObjectTracker::maxColors], 2);
+        sScore = std::to_string(trackerId);
+        if (withScore) {
+            sScore += ": " + std::to_string(score);
+        }
+        cv::putText(img, sScore, cv::Point(int(xc - w / 2), int(yc - h / 2 - 4)),
+                    cv::FONT_HERSHEY_PLAIN, 1.5, ObjectTracker::colors[trackerId % ObjectTracker::maxColors], 2);
+        cv::arrowedLine(img, cv::Point(int(xc), int(yc)), cv::Point(int(xc + 5 * dx), int(yc + 5 * dy)),
+                        ObjectTracker::colors[trackerId % ObjectTracker::maxColors], 4);
+    }
+}
+
+TypeAssociate ObjectTracker::dataAssociate(cv::Mat const &bboxesDet, cv::Mat const &bboxesPred) {
     TypeMatchedPairs matchedDetPred;
     TypeLostDets lostDets;
     TypeLostPreds lostPreds;
 
     // initialize
-    for (int i = 0; i < bboxesDet.rows; ++i)
+    for (int i = 0; i < bboxesDet.rows; ++i) {
         lostDets.push_back(i);  // size M
-    for (int j = 0; j < bboxesPred.rows; ++j)
+    }
+    for (int j = 0; j < bboxesPred.rows; ++j) {
         lostPreds.push_back(j); // size N
+    }
 
     // nothing detected or predicted
-    if (bboxesDet.rows == 0 || bboxesPred.rows == 0)
+    if (bboxesDet.rows == 0 || bboxesPred.rows == 0) {
         return make_tuple(matchedDetPred, lostDets, lostPreds);
+    }
 
     // compute IoU matrix
     cv::Mat iouMat = getIouMatrix(bboxesDet, bboxesPred);   // Mat(M, N)
 
     // Kuhn Munkres assignment algorithm
     Vec2f costMatrix(iouMat.rows, Vec1f(iouMat.cols, 0.0f));
-    for (int i = 0; i < iouMat.rows; ++i)
-        for (int j = 0; j < iouMat.cols; ++j)
+    for (int i = 0; i < iouMat.rows; ++i) {
+        for (int j = 0; j < iouMat.cols; ++j) {
             costMatrix[i][j] = 1.0f - iouMat.at<float>(i, j);
+        }
+    }
     auto indices = km->compute(costMatrix);
 
     // find matched pairs and lost detect and predict
@@ -105,8 +142,7 @@ TypeAssociate Sort::dataAssociate(cv::Mat const &bboxesDet, cv::Mat const &bboxe
     return make_tuple(matchedDetPred, lostDets, lostPreds);
 }
 
-
-cv::Mat Sort::getIouMatrix(cv::Mat const &bboxesA, cv::Mat const &bboxesB) {
+cv::Mat ObjectTracker::getIouMatrix(cv::Mat const &bboxesA, cv::Mat const &bboxesB) {
     assert(bboxesA.cols >= 4 && bboxesB.cols >= 4);
     int numA = bboxesA.rows;
     int numB = bboxesB.rows;
@@ -129,4 +165,14 @@ cv::Mat Sort::getIouMatrix(cv::Mat const &bboxesA, cv::Mat const &bboxesB) {
     }
 
     return iouMat;
+}
+
+void ObjectTracker::initializeColors() {
+    // generate colors
+    cv::RNG rng(ObjectTracker::maxColors);
+    for (size_t i = 0; i < ObjectTracker::maxColors; ++i) {
+        cv::Scalar color(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
+        ObjectTracker::colors.emplace_back(color);
+    }
+    ObjectTracker::colorsInitialized = true;
 }

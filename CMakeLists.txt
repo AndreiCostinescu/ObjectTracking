@@ -15,24 +15,23 @@ if (${CMAKE_BUILD_TYPE_LOWERCASE} MATCHES release)
 endif ()
 
 # opencv
-set(OpenCV_DIR /usr/local/share/OpenCV/)
 find_package(OpenCV REQUIRED)
-include_directories(${OpenCV_INCLUDE_DIRS})
-link_directories(${OpenCV_LIBRARY_DIRS})
-add_definitions(${OpenCV_DEFINITIONS})
 
 # include
-include_directories(
-    ${PROJECT_SOURCE_DIR}/include/
-)
+include_directories(include)
 
 # add library from source files
-file(GLOB_RECURSE SRC_FILES src/*.cpp)
+set(SRC_FILES
+        src/KalmanBoxTracker.cpp
+        src/KuhnMunkres.cpp
+        src/ObjectTracker.cpp
+        )
 add_library(${PROJECT_NAME} SHARED ${SRC_FILES})
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBRARIES})
 set(ALL_INSTALL_TARGETS ${PROJECT_NAME} ${ALL_INSTALL_TARGETS})
 
 # add executable
+find_package(VisualPerception REQUIRED COMPONENTS realsense openpose)
 add_executable(demo_${PROJECT_NAME} main.cpp)
 target_link_libraries(demo_${PROJECT_NAME} ${PROJECT_NAME} ${VisualPerception_LIBRARY})
 

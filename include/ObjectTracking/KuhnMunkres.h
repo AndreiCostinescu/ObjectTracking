@@ -9,12 +9,11 @@
  */
 #pragma once
 
-#include <vector>
-#include <memory>
 #include <functional>
+#include <memory>
+#include <vector>
 
-namespace kuhn_munkres {
-
+namespace ObjectTracking::kuhn_munkres {
     using std::vector;
     using std::pair;
     using Vec1f = vector<float>;
@@ -41,9 +40,9 @@ namespace kuhn_munkres {
 
         virtual ~KuhnMunkres();
 
-        KuhnMunkres(const KuhnMunkres &) = delete;
+        KuhnMunkres(KuhnMunkres const &) = delete;
 
-        KuhnMunkres &operator=(const KuhnMunkres &) = delete;
+        KuhnMunkres &operator=(KuhnMunkres const &) = delete;
 
         /**
          * @brief Compute the indexes for the lowest-cost pairings between rows and
@@ -58,7 +57,7 @@ namespace kuhn_munkres {
          * @return A list of `(row, column)` tuples that describe the lowest cost path
          *         through the matrix
          */
-        vector<pair<int, int> > compute(const Vec2f &costMatrix);
+        vector<pair<int, int> > compute(Vec2f const &costMatrix);
 
         /**
          * @brief Create a cost matrix from a profit matrix by calling `inversion_function()`
@@ -77,7 +76,7 @@ namespace kuhn_munkres {
          *                      entry in the profit matrix.
          * @return cost matrix
          */
-        static Vec2f makeCostMatrix(const Vec2f &profixMatrix, InversionFunc func = nullptr);
+        static Vec2f makeCostMatrix(Vec2f const &profixMatrix, InversionFunc func = nullptr);
 
     private:
         using StepFunc = int (KuhnMunkres::*)();
@@ -211,5 +210,4 @@ namespace kuhn_munkres {
          */
         void erasePrimes();
     };
-
-} // namespace kuhn_munkres
+} // namespace sort::kuhn_munkres

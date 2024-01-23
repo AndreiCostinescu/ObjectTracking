@@ -1,6 +1,6 @@
-#include "kalman_box_tracker.h"
+#include "ObjectTracking/KalmanBoxTracker.h"
 
-using namespace sort;
+using namespace ObjectTracking;
 
 int KalmanBoxTracker::count = 0;
 
@@ -54,9 +54,7 @@ KalmanBoxTracker::KalmanBoxTracker(cv::Mat const &bbox) {
                 kf->statePost);
 }
 
-
 KalmanBoxTracker::~KalmanBoxTracker() = default;
-
 
 cv::Mat KalmanBoxTracker::update(cv::Mat const &bbox) {
     timeSinceUpdate = 0;
@@ -65,7 +63,6 @@ cv::Mat KalmanBoxTracker::update(cv::Mat const &bbox) {
     cv::Mat bboxPost = convertXToBBox(xPost);
     return bboxPost;
 }
-
 
 cv::Mat KalmanBoxTracker::predict() {
     // bbox area (ds/dt + s) shouldn't be negative
@@ -79,4 +76,44 @@ cv::Mat KalmanBoxTracker::predict() {
     timeSinceUpdate++;
 
     return bboxPred;
+}
+
+int KalmanBoxTracker::getFilterCount() {
+    return KalmanBoxTracker::count;
+}
+
+int KalmanBoxTracker::getFilterId() const {
+    return id;
+}
+
+int KalmanBoxTracker::getTimeSinceUpdate() const {
+    return timeSinceUpdate;
+}
+
+int KalmanBoxTracker::getHitStreak() const {
+    return hitStreak;
+}
+
+cv::Mat KalmanBoxTracker::getState() {
+    return xPost.clone();
+}
+
+cv::Mat KalmanBoxTracker::convertBBoxToZ(cv::Mat const &bbox) {
+    assert(bbox.rows == 1 && bbox.cols >= 4);
+    float x = bbox.at<float>(0, 0);
+    float y = bbox.at<float>(0, 1);
+    float s = bbox.at<float>(0, 2) * bbox.at<float>(0, 3);
+    float r = bbox.at<float>(0, 2) / bbox.at<float>(0, 3);
+
+    return (cv::Mat_<float>(KF_DIM_Z, 1) << x, y, s, r);  // NOLINT(modernize-return-braced-init-list)
+}
+
+cv::Mat KalmanBoxTracker::convertXToBBox(cv::Mat const &state) {
+    assert(state.rows == KF_DIM_X && state.cols == 1);
+    float x = state.at<float>(0, 0);
+    float y = state.at<float>(1, 0);
+    auto w = float(sqrt(double(state.at<float>(2, 0) * state.at<float>(3, 0))));
+    float h = state.at<float>(2, 0) / w;
+
+    return (cv::Mat_<float>(1, 4) << x, y, w, h);  // NOLINT(modernize-return-braced-init-list)
 }
