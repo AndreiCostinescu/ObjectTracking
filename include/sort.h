@@ -24,7 +24,7 @@ namespace sort {
     using kuhn_munkres::Vec2f;
     using kuhn_munkres::Vec1f;
 
-    using TypeMatchedPairs = vector<pair<int, int> >;   // first: detected id, second: predicted id
+    using TypeMatchedPairs = vector<pair<int, int>>;   // first: detected id, second: predicted id
     using TypeLostDets = vector<int>;
     using TypeLostPreds = vector<int>;
     using TypeAssociate = tuple<TypeMatchedPairs, TypeLostDets, TypeLostPreds>;

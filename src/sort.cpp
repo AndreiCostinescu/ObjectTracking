@@ -14,9 +14,10 @@ Sort::~Sort() = default;
 cv::Mat Sort::update(cv::Mat const &bboxesDet) {
     assert(bboxesDet.rows >= 0 && bboxesDet.cols == 6); // detections, [xc, yc, w, h, score, class_id]
 
-    cv::Mat bboxesPred(0, 6, CV_32F, cv::Scalar(0));  // predictions used in data association, [xc, yc, w, h, score, class_id]
-    cv::Mat bboxesPost(0, 9, CV_32F,
-                       cv::Scalar(0));  // bounding boxes estimate, [xc, yc, w, h, score, class_id, vx, vy, tracker_id]
+    // predictions used in data association, [xc, yc, w, h, score, class_id]
+    cv::Mat bboxesPred(0, 6, CV_32F, cv::Scalar(0));
+    // bounding boxes estimate, [xc, yc, w, h, score, class_id, vx, vy, tracker_id]
+    cv::Mat bboxesPost(0, 9, CV_32F, cv::Scalar(0));
 
     // kalman bbox tracker predict
     for (auto it = trackers.begin(); it != trackers.end();) {
@@ -54,13 +55,10 @@ cv::Mat Sort::update(cv::Mat const &bboxesDet) {
     }
 
     // remove dead trackers
-    trackers.erase(
-            std::remove_if(trackers.begin(), trackers.end(),
-                           [&](const KalmanBoxTracker::Ptr &kbt) -> bool {
-                               return kbt->getTimeSinceUpdate() > maxAge;
-                           }),
-            trackers.end()
-    );
+    trackers.erase(std::remove_if(trackers.begin(), trackers.end(),
+                                  [&](KalmanBoxTracker::Ptr const &kbt) -> bool {
+                                      return kbt->getTimeSinceUpdate() > this->maxAge;
+                                  }), trackers.end());
 
     // create and initialize new trackers for unmatched detections
     for (int lostInd: lostDets) {
