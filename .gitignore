@@ -36,3 +36,12 @@ build/
 .devcontainer/
 .vscode/
 output/
+
+.idea
+build*/
+cmake-build*/
+models/
+
+data/recording_*
+
+__pycache__*
