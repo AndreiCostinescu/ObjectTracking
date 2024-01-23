@@ -20,6 +20,8 @@ file(GLOB_RECURSE SRC_FILES src/*.cpp)
 add_library(${PROJECT_NAME} SHARED ${SRC_FILES})
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBRARIES})
 
+find_package(VisualPerception REQUIRED COMPONENTS realsense openpose)
+
 # add executable
 add_executable(demo_${PROJECT_NAME} main.cpp)
-target_link_libraries(demo_${PROJECT_NAME} ${PROJECT_NAME})
+target_link_libraries(demo_${PROJECT_NAME} ${PROJECT_NAME} ${VisualPerception_LIBRARY})
